@@ -17,16 +17,19 @@ is never touched.
    [docs/runbooks/secret-rotation.md](docs/runbooks/secret-rotation.md)). This is
    a production action and is separate from this stack.
 2. Place this repo at `/opt/voxhorizon-csuite/repo`.
-3. Resolve the Data Brain source for the build (set `DATA_BRAIN_SRC` to the
-   `business-data-brain-template` checkout or git URL; tracked as issue M2-2).
+3. Export `DATA_BRAIN_SRC` as the `business-data-brain-template` source (a local
+   path or a git URL). The bootstrap copies or clones it to build the Data Brain.
 4. Run the isolated bootstrap:
    ```
    cd /opt/voxhorizon-csuite/repo/infra
-   sudo ./bootstrap-csuite.sh
+   sudo DATA_BRAIN_SRC=<path-or-git-url> ./bootstrap-csuite.sh
    ```
-   It creates the `csuite` user, self-hosts Supabase, builds the Data Brain,
-   creates the `csuite_readonly` role, scaffolds each agent data dir, and brings
-   up the passive agent containers. It refuses to run against `/opt/voxhorizon`.
+   It creates the `csuite` user, self-hosts Supabase (with published ports bound
+   to 127.0.0.1), builds the Data Brain, applies the warehouse + C-Suite
+   migrations (incl. the SELECT-only `csuite_readonly` role from
+   `db/migrations/0001`), scaffolds each agent data dir, and brings up the passive
+   agent containers. It refuses to run against `/opt/voxhorizon`. Use
+   `--dry-run` to print the plan without writing anything.
 5. Fill `/home/csuite/.config/voxhorizon-csuite/csuite.env`: `MC_AUTH_PASS`,
    `MC_AUTH_SECRET`, `CSUITE_DISPATCHER_SECRET`.
 6. Provide the Codex `auth.json` once and point `CODEX_AUTH_JSON_SRC` at it, then
