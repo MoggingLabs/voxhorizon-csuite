@@ -1,0 +1,112 @@
+name: ci
+
+# Pre-merge gate. Runs on PRs into main and on push to main. Never deploys.
+# Jobs are defensive so the gate is green from the first PR and tightens as the
+# packages (Mission Control, dispatcher, MCP) gain real code and tests.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  isolation-guard:
+    name: Isolation guard (no prod refs, no OpenRouter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Static isolation guard
+        run: python tests/security/isolation_guard.py
+
+  shell:
+    name: Shell scripts (shellcheck errors)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y shellcheck
+          shellcheck -S error infra/*.sh hermes/*.sh
+
+  compose-lint:
+    name: Compose YAML valid
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate compose YAML
+        run: |
+          python - <<'PY'
+          import glob, yaml, sys
+          ok = True
+          for f in glob.glob("infra/docker-compose*.yml"):
+              try:
+                  yaml.safe_load(open(f))
+                  print("ok", f)
+              except Exception as e:
+                  print("FAIL", f, e); ok = False
+          sys.exit(0 if ok else 1)
+          PY
+
+  actionlint:
+    name: Workflow lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: actionlint
+        uses: raven-actions/actionlint@v2
+
+  mcp:
+    name: Data Brain MCP (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Test if package present
+        run: |
+          if [ -f hermes/data-brain-mcp/pyproject.toml ]; then
+            cd hermes/data-brain-mcp && uv sync --extra dev && uv run pytest
+          else
+            echo "no pyproject yet (M3); skipping"
+          fi
+
+  dispatcher:
+    name: Dispatcher (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Test if package present
+        run: |
+          if [ -f apps/csuite-dispatcher/pyproject.toml ]; then
+            cd apps/csuite-dispatcher && uv sync --extra dev && uv run pytest
+          else
+            echo "no pyproject yet (M6); skipping"
+          fi
+
+  mission-control:
+    name: Mission Control (typecheck + lint + unit + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test if app present
+        run: |
+          if [ -f apps/mission-control/package.json ]; then
+            corepack enable
+            cd apps/mission-control && pnpm install --frozen-lockfile && pnpm tsc --noEmit && pnpm lint && pnpm test:coverage && pnpm build
+          else
+            echo "no app yet (M5); skipping"
+          fi

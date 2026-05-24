@@ -1,0 +1,12 @@
+# Copied to build/data-brain/.dockerignore by bootstrap-csuite.sh.
+# Keeps the Data Brain build context lean and secrets out of the image.
+.git
+.gitignore
+node_modules
+.next
+.env
+.env.*
+*.log
+.vercel
+README.md
+CLAUDE.md

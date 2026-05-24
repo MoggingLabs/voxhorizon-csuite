@@ -1,0 +1,50 @@
+# Vox Horizon C-Suite - dispatcher + scope-limited Docker socket proxy.
+#
+# Two-layer control for C2 (the Docker socket is root-equivalent):
+#  - tecnativa/docker-socket-proxy holds the real socket and exposes only the
+#    verbs needed to exec (CONTAINERS + EXEC + POST); every other section stays 0.
+#  - the dispatcher enforces the target allow-list (csuite-hermes-* only) in code,
+#    with an argv array (never a shell string). It never holds the raw socket.
+#
+# Built in M6; this is the target compose (validated as YAML in CI today). Run:
+#   docker compose -p csuite --env-file <csuite.env> -f docker-compose.dispatcher.yml up -d
+
+services:
+  csuite-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"   # resolve/inspect a container by name
+      EXEC: "1"         # create/start exec instances
+      POST: "1"         # exec is a POST; everything else stays denied
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      csuite_net: {}
+
+  csuite-dispatcher:
+    build:
+      context: ../apps/csuite-dispatcher
+      dockerfile: Dockerfile
+    image: voxhorizon-csuite/dispatcher:local
+    restart: unless-stopped
+    env_file:
+      - /home/csuite/.config/voxhorizon-csuite/csuite.env
+    environment:
+      DOCKER_HOST: tcp://csuite-socket-proxy:2375
+      CSUITE_AGENT_ALLOWLIST: "rex,dash,closer,vault,bob,pulse"
+    depends_on:
+      - csuite-socket-proxy
+    ports:
+      - "127.0.0.1:8200:8200"   # loopback only; reached by Mission Control
+    networks:
+      csuite_net: {}
+      supabase: {}
+
+networks:
+  csuite_net:
+    name: csuite_net
+    external: true
+  supabase:
+    name: ${SUPABASE_NETWORK:-csuite-supabase_default}
+    external: true

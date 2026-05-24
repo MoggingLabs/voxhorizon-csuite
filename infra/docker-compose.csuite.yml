@@ -1,0 +1,50 @@
+# Vox Horizon C-Suite - our containers (the Data Brain).
+#
+# The self-hosted Supabase stack is a separate compose project (csuite-supabase),
+# brought up by bootstrap-csuite.sh from the official supabase/supabase docker
+# dir. This file only owns the Data Brain and attaches it to the Supabase network
+# so it can reach the Kong gateway by service name.
+#
+# Run from /opt/voxhorizon-csuite with project name `csuite`:
+#   docker compose -p csuite --env-file /home/csuite/.config/voxhorizon-csuite/csuite.env \
+#     -f docker-compose.csuite.yml up -d
+#
+# Isolation: dedicated network `csuite_net`, loopback-only host port, never
+# joins voxhorizon_default or hermes-agent-ekko_default.
+
+services:
+  data-brain:
+    build:
+      context: ./build/data-brain
+      dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_* are inlined into the client bundle at build time.
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://127.0.0.1:3100}
+    image: voxhorizon-csuite/data-brain:local
+    restart: unless-stopped
+    env_file:
+      - /home/csuite/.config/voxhorizon-csuite/csuite.env
+    # Loopback only - reach it via Tailscale Serve, never a public port.
+    ports:
+      - "127.0.0.1:3100:3000"
+    networks:
+      csuite_net: {}
+      supabase: {}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+networks:
+  # Our private bridge - nothing from production is on it.
+  csuite_net:
+    name: csuite_net
+  # The official Supabase compose owns this network; we attach as external so
+  # data-brain can resolve `kong`. Name comes from the Supabase project name.
+  supabase:
+    name: ${SUPABASE_NETWORK:-csuite-supabase_default}
+    external: true

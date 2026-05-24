@@ -1,0 +1,84 @@
+# Vox Horizon C-Suite - Hermes agent containers (our own, isolated, PASSIVE).
+#
+# Interface is Mission Control only (no Telegram / Slack). Each agent is its OWN
+# container for FAULT ISOLATION: if one crashes or hangs, Docker restarts just
+# that one (restart: unless-stopped) and the others are unaffected - a single
+# container is a single failure domain, which ports-in-one-container cannot give.
+#
+# Agents are PASSIVE (sleep infinity), exactly like the live operator. Mission
+# Control's dispatcher runs `docker exec csuite-hermes-<name> hermes chat -q ...`
+# to put one to work and records the result to Supabase. Idle agents use ~0 RAM.
+#
+# Storage: the 9.94GB image is shared (already on the box), so six containers
+# cost only their small writable layers + data dirs - collapsing to one would not
+# save meaningful disk. They sit on csuite_net + the Supabase network, never join
+# voxhorizon_default or hermes-agent-ekko_default, and are separate from the
+# Hostinger-managed production Hermes containers.
+#
+# Run from /opt/voxhorizon-csuite with project name `csuite`:
+#   docker compose -p csuite --env-file <csuite.env> -f docker-compose.hermes.yml up -d
+#
+# !!! VERIFY (read-only, against live prod): does the public image honor a CMD
+# override to stay passive? The custom hermes-lua:src operator runs Cmd `sleep
+# infinity` successfully; confirm /entrypoint.sh execs "$@" on the public image
+# (read its tail). If it ignores CMD, use a passive wrapper or accept an idle
+# gateway per agent.
+
+x-hermes-agent: &hermes-agent
+  image: ghcr.io/hostinger/hvps-hermes-agent:latest
+  restart: unless-stopped            # per-container restart = fault isolation
+  command: ["sleep", "infinity"]     # passive; MC dispatches via docker exec
+  env_file:
+    - /home/csuite/.config/voxhorizon-csuite/csuite.env
+  environment:
+    HERMES_HOME: /opt/data
+    HERMES_UID: "10000"
+    HERMES_GID: "10000"
+  networks:
+    csuite_net: {}
+    supabase: {}
+
+services:
+  csuite-hermes-rex:
+    <<: *hermes-agent
+    container_name: csuite-hermes-rex
+    volumes:
+      - /opt/voxhorizon-csuite/agents/rex/data:/opt/data
+
+  csuite-hermes-dash:
+    <<: *hermes-agent
+    container_name: csuite-hermes-dash
+    volumes:
+      - /opt/voxhorizon-csuite/agents/dash/data:/opt/data
+
+  csuite-hermes-closer:
+    <<: *hermes-agent
+    container_name: csuite-hermes-closer
+    volumes:
+      - /opt/voxhorizon-csuite/agents/closer/data:/opt/data
+
+  csuite-hermes-vault:
+    <<: *hermes-agent
+    container_name: csuite-hermes-vault
+    volumes:
+      - /opt/voxhorizon-csuite/agents/vault/data:/opt/data
+
+  csuite-hermes-bob:
+    <<: *hermes-agent
+    container_name: csuite-hermes-bob
+    volumes:
+      - /opt/voxhorizon-csuite/agents/bob/data:/opt/data
+
+  csuite-hermes-pulse:
+    <<: *hermes-agent
+    container_name: csuite-hermes-pulse
+    volumes:
+      - /opt/voxhorizon-csuite/agents/pulse/data:/opt/data
+
+networks:
+  csuite_net:
+    name: csuite_net
+    external: true   # created by docker-compose.csuite.yml
+  supabase:
+    name: ${SUPABASE_NETWORK:-csuite-supabase_default}
+    external: true
