@@ -46,7 +46,7 @@ Adversaries and entry points:
 | C9 | Secret in git history | gitleaks + .gitignore + custom rules | secret-scan workflow green |
 | C10 | Audit gap | dispatch + audit_log tables; every exec writes an audit row | sec_dispatch_writes_audit |
 | C11 | Dispatcher bearer | constant-time compare, loopback, fail-closed | sec_bearer_constant_time, sec_bearer_rejects_missing |
-| C12 | Supply chain | dependabot + gitleaks + pinned lockfiles. CodeQL + dependency-review need GitHub Advanced Security, which is not available on a private repo without a paid plan, so they are deferred until GHAS is enabled. | secret-scan green; dependabot active |
+| C12 | Supply chain | dependabot + gitleaks + pinned lockfiles + CodeQL + dependency-review (all active; CodeQL and dependency-review run free now that the repo is public) | secret-scan + codeql + dependency-review green; dependabot active |
 
 ## Control status (M9)
 
@@ -64,7 +64,7 @@ on a running host (marked deploy):
 - C9 secret scan: gitleaks workflow (CI).
 - C10 audit: dispatcher records audit rows (`test_dispatch`); table in `test_dispatch_tables` (CI).
 - C11 dispatcher bearer: `test_dispatch` bearer cases (CI).
-- C12 supply chain: dependabot + gitleaks (CI); CodeQL deferred (needs GHAS).
+- C12 supply chain: dependabot + gitleaks + CodeQL + dependency-review (CI; CodeQL and dependency-review free on the public repo).
 
 ## Prompt injection posture
 
