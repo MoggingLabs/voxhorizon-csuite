@@ -48,6 +48,24 @@ Adversaries and entry points:
 | C11 | Dispatcher bearer | constant-time compare, loopback, fail-closed | sec_bearer_constant_time, sec_bearer_rejects_missing |
 | C12 | Supply chain | dependabot + gitleaks + pinned lockfiles. CodeQL + dependency-review need GitHub Advanced Security, which is not available on a private repo without a paid plan, so they are deferred until GHAS is enabled. | secret-scan green; dependabot active |
 
+## Control status (M9)
+
+Every control has a test enforced in CI, except the two that can only be checked
+on a running host (marked deploy):
+
+- C1 isolation: `test_isolation_guard`, `test_bootstrap_contract`, `test_ports_loopback`, `test_agents` (CI).
+- C2 scoped socket: `test_dispatch` abuse cases (CI).
+- C3 read-only data: MCP `test_guard` golden allow/deny + `test_data_layer` role grants (CI).
+- C4 auth.json handling: chmod + not-tracked (deploy; `.gitignore` covers tracking).
+- C5 no leaked prod secret: `test_no_prod_secret` (CI).
+- C6 OpenRouter / API-key scrub: `test_isolation_guard` (CI).
+- C7 RLS deny-all: `test_dispatch_tables` (CI); live RLS at deploy.
+- C8 prompt injection: `test_prompt_injection_is_rejected` + the deny golden (CI).
+- C9 secret scan: gitleaks workflow (CI).
+- C10 audit: dispatcher records audit rows (`test_dispatch`); table in `test_dispatch_tables` (CI).
+- C11 dispatcher bearer: `test_dispatch` bearer cases (CI).
+- C12 supply chain: dependabot + gitleaks (CI); CodeQL deferred (needs GHAS).
+
 ## Prompt injection posture
 
 The architecture makes injection low-impact by construction. Agents have no write
