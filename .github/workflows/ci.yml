@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
       - name: Test if package present
         run: |
           if [ -f hermes/data-brain-mcp/pyproject.toml ]; then
@@ -102,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
       - name: Test if package present
         run: |
           if [ -f apps/csuite-dispatcher/pyproject.toml ]; then
@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
       - name: Test if app present
         run: |
           if [ -f apps/mission-control/pyproject.toml ]; then
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
       - name: Test if package present
         run: |
           if [ -f apps/csuite-ingest/pyproject.toml ]; then
