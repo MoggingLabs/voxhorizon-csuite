@@ -1,6 +1,7 @@
 """Per-connector logic: the internal audit_feed and the derived fields."""
 
 from src.connectors.audit_feed import AuditFeed
+from src.connectors.email_engagement import EmailEngagement, _ghl_to_records
 from src.connectors.nps_feedback import NpsFeedback, _bucket
 from src.connectors.webinar_metrics import WebinarMetrics
 from src.config import Settings
@@ -114,3 +115,34 @@ def test_webinar_rate_explicit_passthrough():
         [{"id": "w", "registrants": 10, "attendees": 5, "attendance_rate": 0.9}]
     )
     assert rows[0]["attendance_rate"] == 0.9
+
+
+def test_ghl_schedule_maps_to_engagement_rows():
+    schedules = [
+        {
+            "_id": "abc123",
+            "name": "May Nurture",
+            "status": "sent",
+            "hasTracking": True,
+            "updatedAt": "2026-05-24T09:00:00Z",
+            "createdAt": "2026-05-20T09:00:00Z",
+            "opened": 42,
+            "downloadUrl": "https://big/file",  # dropped from meta
+            "child": [1, 2, 3],  # dropped from meta
+        },
+        {"id": "no-underscore-id", "name": "Fallback Id"},
+        {"name": "skipped: no id"},  # no id -> skipped
+    ]
+    records = _ghl_to_records(schedules)
+    assert [r["id"] for r in records] == ["abc123", "no-underscore-id"]
+    first = records[0]
+    assert first["campaign"] == "May Nurture"
+    assert first["event"] == "campaign"
+    assert first["timestamp"] == "2026-05-24T09:00:00Z"  # updatedAt preferred
+    assert "downloadUrl" not in first["meta"] and "child" not in first["meta"]
+    assert first["meta"]["opened"] == 42  # stats preserved
+    # and the connector normalizes those into table rows
+    rows = EmailEngagement().normalize(records)
+    assert rows[0]["id"] == "abc123"
+    assert rows[0]["source"] == "email_engagement"
+    assert rows[0]["meta"]["opened"] == 42
