@@ -1,0 +1,21 @@
+[
+  "insert into t01_leads (id) values (1)",
+  "update t01_leads set source = 'x'",
+  "delete from t01_leads",
+  "drop table t01_leads",
+  "truncate t01_leads",
+  "alter table t01_leads add column x int",
+  "create table x (a int)",
+  "grant all on t01_leads to public",
+  "revoke select on t01_leads from public",
+  "copy t01_leads to '/tmp/x.csv'",
+  "do $$ begin perform 1; end $$",
+  "merge into t01_leads using src on true when matched then delete",
+  "vacuum",
+  "reindex table t01_leads",
+  "select 1; drop table t01_leads",
+  "select * from t01_leads where id = (delete from t02_ads returning 1)",
+  "DELETE FROM t01_leads",
+  "InSeRt into t01_leads (id) values (1)",
+  "update t01_leads set x = 1 -- comment"
+]

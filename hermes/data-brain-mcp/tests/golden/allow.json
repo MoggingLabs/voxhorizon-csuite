@@ -1,0 +1,10 @@
+[
+  "select 1",
+  "SELECT * FROM t01_leads WHERE source = 'meta'",
+  "with t as (select 1 as n) select n from t",
+  "select count(*) from t02_ads",
+  "select created_at, deleted_at from t03_bookings",
+  "  select\n  id\n  from t09_clients\n",
+  "select sum(amount) from t06_income_processors where program = 'A'",
+  "select 1;"
+]
