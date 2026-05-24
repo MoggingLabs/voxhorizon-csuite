@@ -1,0 +1,35 @@
+# Vox Horizon C-Suite - V2 ingest worker (M10).
+#
+# A batch worker, not a service: it pulls each source read-only and upserts
+# normalized rows into the self-hosted Supabase (PostgREST, service role). It is
+# kept under a compose profile so it never auto-starts; a host cron (or systemd
+# timer) invokes it on a schedule. One connector failing never blocks the rest.
+#
+# Run all sources once:
+#   docker compose -p csuite --env-file <csuite.env> -f docker-compose.ingest.yml \
+#     run --rm csuite-ingest
+# Run a subset:
+#   ... run --rm csuite-ingest audit_feed nps_feedback
+#
+# Example cron (every 30 min), as the csuite user:
+#   */30 * * * * docker compose -p csuite \
+#     --env-file /home/csuite/.config/voxhorizon-csuite/csuite.env \
+#     -f /opt/voxhorizon-csuite/infra/docker-compose.ingest.yml run --rm csuite-ingest
+
+services:
+  csuite-ingest:
+    build:
+      context: ../apps/csuite-ingest
+      dockerfile: Dockerfile
+    image: voxhorizon-csuite/ingest:local
+    profiles: ["ingest"]
+    restart: "no"
+    env_file:
+      - /home/csuite/.config/voxhorizon-csuite/csuite.env
+    networks:
+      supabase: {}
+
+networks:
+  supabase:
+    name: ${SUPABASE_NETWORK:-csuite-supabase_default}
+    external: true

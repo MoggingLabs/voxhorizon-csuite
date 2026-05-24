@@ -124,3 +124,17 @@ jobs:
           else
             echo "no app yet; skipping"
           fi
+
+  ingest:
+    name: Ingest worker (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Test if package present
+        run: |
+          if [ -f apps/csuite-ingest/pyproject.toml ]; then
+            cd apps/csuite-ingest && uv sync --extra dev && uv run pytest
+          else
+            echo "no pyproject yet (M10); skipping"
+          fi
