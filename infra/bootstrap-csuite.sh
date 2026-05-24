@@ -17,7 +17,7 @@ set -euo pipefail
 
 # --- fixed, isolated paths (refuse to run against production root) ---
 CSUITE_USER="csuite"
-ROOT="/opt/voxhorizon-csuite"
+ROOT="${CSUITE_ROOT:-/opt/voxhorizon-csuite}"
 REPO_DIR="${ROOT}/repo"                     # this License-and-Scale checkout
 SUPA_SRC="${ROOT}/supabase-src"             # official supabase/supabase clone
 SUPA_DIR="${SUPA_SRC}/docker"               # its docker compose dir
@@ -89,7 +89,18 @@ migrate_only() {
   echo "ok: migrations applied"
   exit 0
 }
-[[ "${MODE}" == "migrate" ]] && migrate_only
+if [[ "${MODE}" == "migrate" ]]; then migrate_only; fi
+
+# Dry run: validate, print the plan, and exit WITHOUT writing anything. Runs
+# without root so it is safe in CI (M1-1 contract: --dry-run writes nothing).
+if [[ "${DRY_RUN}" -eq 1 ]]; then
+  say "DRY RUN: plan for the isolated C-Suite under ${ROOT} (no changes made)"
+  echo "[dry-run] create user ${CSUITE_USER}; dirs under ${ROOT}, ${SECRETS_DIR}, ${AGENTS_ROOT}"
+  echo "[dry-run] clone self-hosted Supabase; generate secrets; render ${ENV_FILE}"
+  echo "[dry-run] assemble Data Brain build; create the csuite_readonly role"
+  echo "[dry-run] docker compose up: csuite + hermes; sync agent profiles"
+  exit 0
+fi
 
 # ---------------------------------------------------------------------------
 need_root
@@ -196,11 +207,6 @@ say "7. stage Hermes compose (agent data dirs were created in step 2)"
 cp "${SCRIPT_DIR}/docker-compose.hermes.yml" "${ROOT}/docker-compose.hermes.yml"
 chown "${CSUITE_USER}:${CSUITE_USER}" "${ROOT}/docker-compose.hermes.yml"
 echo "ok: agent data dirs under ${AGENTS_ROOT}; SOUL.md + skills are pushed later by hermes/sync-csuite.sh"
-
-if [[ "${DRY_RUN}" -eq 1 ]]; then
-  say "DRY RUN complete - skipped docker up + migrations"
-  exit 0
-fi
 
 say "8. bring up self-hosted Supabase (project ${SUPA_PROJECT})"
 sudo -u "${CSUITE_USER}" -H sh -c "cd '${SUPA_DIR}' && docker compose -p '${SUPA_PROJECT}' pull && docker compose -p '${SUPA_PROJECT}' up -d"

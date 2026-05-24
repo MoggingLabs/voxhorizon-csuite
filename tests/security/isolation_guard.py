@@ -10,10 +10,11 @@ Rules:
   forbidden tokens in prose or negative test fixtures).
 - Skip .md files (documentation may name what must not be touched).
 - Skip comment lines (a comment that says "never join voxhorizon_default" is fine).
-- Flag actual usage: a prod network/container/path, an `openrouter` reference, or
-  an `OPENAI_API_KEY` / `OPENROUTER_API_KEY` assignment with a value.
+- Flag actual usage: a prod network/container/path, an `openrouter.ai` endpoint,
+  or an `OPENAI_API_KEY` / `OPENROUTER_API_KEY` assignment with a value.
 
 Run: python tests/security/isolation_guard.py  (exit 1 on any finding)
+Importable: scan(root) -> list[str] of findings, used by the unit tests.
 """
 
 from __future__ import annotations
@@ -56,8 +57,8 @@ def iter_files(root: Path):
             yield p
 
 
-def main() -> int:
-    root = Path(__file__).resolve().parents[2]
+def scan(root: Path) -> list[str]:
+    """Return a list of findings (file:line: why: snippet). Empty means clean."""
     findings: list[str] = []
     for path in iter_files(root):
         try:
@@ -71,6 +72,12 @@ def main() -> int:
                 if pat.search(line):
                     rel = path.relative_to(root)
                     findings.append(f"{rel}:{n}: {why}: {line.strip()[:120]}")
+    return findings
+
+
+def main() -> int:
+    root = Path(__file__).resolve().parents[2]
+    findings = scan(root)
     if findings:
         print("ISOLATION GUARD FAILED:")
         for f in findings:
