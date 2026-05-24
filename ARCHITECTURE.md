@@ -31,11 +31,11 @@ You -> Mission Control (Agents module on the Data Brain Next.js app, the only UI
 
 ### 1. Mission Control (interface)
 
-An "Agents" module added to the existing Data Brain Next.js + Supabase app. It is
-the only interface. It shows the agent roster and live status, a per-agent
-dispatch surface that streams output over SSE, a task board where Rex files the
-daily plan, and the history of every dispatch. Single-operator auth gate,
-fail-closed. Reached privately over Tailscale Serve.
+A self-contained FastAPI service (ADR 0009), the only interface. It shows the
+agent roster, a per-agent dispatch surface that streams output over SSE, and the
+history of every dispatch (read from Supabase). Single-operator auth gate,
+fail-closed. Loopback 3100, reached privately over Tailscale Serve. The Data Brain
+Next.js dashboard is an optional, separate BI view on 3101.
 
 ### 2. Dispatcher (control)
 

@@ -112,15 +112,15 @@ jobs:
           fi
 
   mission-control:
-    name: Mission Control (typecheck + lint + unit + build)
+    name: Mission Control (pytest)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
       - name: Test if app present
         run: |
-          if [ -f apps/mission-control/package.json ]; then
-            corepack enable
-            cd apps/mission-control && pnpm install --frozen-lockfile && pnpm tsc --noEmit && pnpm lint && pnpm test:coverage && pnpm build
+          if [ -f apps/mission-control/pyproject.toml ]; then
+            cd apps/mission-control && uv sync --extra dev && uv run pytest
           else
-            echo "no app yet (M5); skipping"
+            echo "no app yet; skipping"
           fi

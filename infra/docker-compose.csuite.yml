@@ -26,9 +26,10 @@ services:
     restart: unless-stopped
     env_file:
       - /home/csuite/.config/voxhorizon-csuite/csuite.env
-    # Loopback only - reach it via Tailscale Serve, never a public port.
+    # Optional human BI dashboard (the agents read the DB via the MCP, and
+    # Mission Control owns 3100). Loopback only; reach it via Tailscale Serve.
     ports:
-      - "127.0.0.1:3100:3000"
+      - "127.0.0.1:3101:3000"
     networks:
       csuite_net: {}
       supabase: {}
