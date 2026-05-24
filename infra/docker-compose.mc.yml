@@ -1,0 +1,31 @@
+# Vox Horizon C-Suite - Mission Control (the sole UI).
+#
+# Self-contained FastAPI service (ADR 0009). Loopback 3100, on csuite_net; reaches
+# the dispatcher by service name and reads Supabase by env. Public access is via
+# Tailscale Serve only. Run:
+#   docker compose -p csuite --env-file <csuite.env> -f docker-compose.mc.yml up -d
+
+services:
+  csuite-mission-control:
+    build:
+      context: ../apps/mission-control
+      dockerfile: Dockerfile
+    image: voxhorizon-csuite/mission-control:local
+    restart: unless-stopped
+    env_file:
+      - /home/csuite/.config/voxhorizon-csuite/csuite.env
+    environment:
+      CSUITE_DISPATCHER_URL: http://csuite-dispatcher:8200
+    ports:
+      - "127.0.0.1:3100:3100"
+    networks:
+      csuite_net: {}
+      supabase: {}
+
+networks:
+  csuite_net:
+    name: csuite_net
+    external: true
+  supabase:
+    name: ${SUPABASE_NETWORK:-csuite-supabase_default}
+    external: true

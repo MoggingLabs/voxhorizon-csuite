@@ -1,19 +1,19 @@
-# Mission Control (Agents module)
+# Mission Control
 
-The only interface to the C-Suite. Implemented in M5 as an "Agents" module added
-to the Data Brain Next.js + Supabase app (not a separate app), so it reuses the
-existing auth gate, Supabase Realtime, and chat/SSE patterns.
+The only interface to the C-Suite (no Telegram, no Slack). A self-contained
+FastAPI service (ADR 0009) on loopback 3100, reached privately via Tailscale
+Serve.
 
-Scope (M5):
-- Agent roster + live container status from the dispatcher.
-- Per-agent dispatch surface: submit a task, stream output over SSE, persist the
-  result.
-- Rex's daily task board.
-- Dispatch + audit history (reads the `dispatch` and `audit_log` tables).
+Endpoints:
+- `GET /health`
+- `GET /login`, `POST /login` (single-operator gate; HMAC-signed session cookie
+  keyed on `MC_AUTH_SECRET`, password `MC_AUTH_PASS`, fail-closed).
+- `GET /` the dashboard (agent roster).
+- `GET /api/agents` the roster (auth required).
+- `POST /api/dispatch` `{agent, prompt}` proxies to the dispatcher with the bearer
+  and streams the agent output back (SSE).
+- `GET /api/history` recent dispatches + audit rows from Supabase.
 
-Auth: single-operator gate, fail-closed (`MC_AUTH_PASS` / `MC_AUTH_SECRET`).
-Reached privately over Tailscale Serve on loopback port 3100.
-
-This directory holds the module source overlay and its tests. Until M5 lands it
-is a placeholder, and the `mission-control` CI job skips (guarded on
-`package.json`).
+Tested with FakeDispatcher + FakeStore (no dispatcher or DB needed in CI), at
+>=90 percent coverage. Run: `uvicorn src.main:create_app --factory`. The optional
+Data Brain BI dashboard runs separately on 3101.
