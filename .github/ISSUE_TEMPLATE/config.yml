@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Architecture and decisions
+    url: https://github.com/pveloso01/voxhorizon-csuite/blob/main/ARCHITECTURE.md
+    about: Read the locked architecture and ADRs before filing design changes.

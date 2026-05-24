@@ -1,0 +1,41 @@
+# gitleaks config for voxhorizon-csuite. Extends the default ruleset with custom
+# rules for the credential shapes this project handles. Used by the secret-scan
+# workflow on every PR, push, and weekly schedule.
+
+title = "voxhorizon-csuite gitleaks"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "jwt-token"
+description = "JWT-shaped token (Supabase keys, Codex tokens)"
+regex = '''eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'''
+tags = ["jwt", "supabase", "codex"]
+
+[[rules]]
+id = "supabase-key"
+description = "Supabase publishable/secret key prefix"
+regex = '''sb_(secret|publishable)_[A-Za-z0-9]{16,}'''
+tags = ["supabase"]
+
+[[rules]]
+id = "worker-shared-secret"
+description = "WORKER_SHARED_SECRET assignment (must never appear here)"
+regex = '''(?i)WORKER_SHARED_SECRET\s*[:=]\s*[A-Fa-f0-9]{32,}'''
+tags = ["prod", "isolation"]
+
+[[rules]]
+id = "openai-key"
+description = "OpenAI-style API key (must never appear; subscription only)"
+regex = '''sk-[A-Za-z0-9]{20,}'''
+tags = ["openai", "no-api-key"]
+
+[allowlist]
+description = "Docs may name secrets by NAME (not value) and example placeholders"
+paths = [
+  '''SECRETS\.md''',
+  '''SECURITY\.md''',
+  '''infra/\.env\.csuite\.example''',
+  '''\.gitleaks\.toml''',
+]

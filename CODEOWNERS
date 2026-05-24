@@ -1,0 +1,12 @@
+# Default owner for everything.
+* @pveloso01
+
+# Security-sensitive paths require explicit review.
+/SECURITY.md            @pveloso01
+/SECRETS.md             @pveloso01
+/.github/workflows/     @pveloso01
+/.gitleaks.toml         @pveloso01
+/infra/                 @pveloso01
+/apps/csuite-dispatcher/ @pveloso01
+/hermes/data-brain-mcp/ @pveloso01
+/db/                    @pveloso01
