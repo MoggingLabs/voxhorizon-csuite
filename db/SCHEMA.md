@@ -32,8 +32,27 @@ Data Brain MCP. This repo does not own or migrate these tables; they come from t
 | t21_monthly_projections | targets vs actuals | manual + computed |
 | t91_weekly_qualitative_cache | weekly themes | Claude |
 
-V2 gaps (M10, not yet ingested anywhere): email engagement, support tickets,
-churn reasons, content calendar, webinar metrics, NPS, an audit-log feed.
+## V2 ingest tables (this repo migrates, M10)
+
+These close the visibility gaps. The C-Suite ingest worker (`apps/csuite-ingest`)
+pulls each source read-only and upserts normalized rows here; agents read them
+through the same `csuite_readonly` MCP role. Each table has RLS on with a SELECT
+policy for `csuite_readonly` and no access for anon/authenticated, so the public
+PostgREST surface cannot read them (control C7). Created by
+`db/migrations/0003_v2_ingest.sql`.
+
+| Table | Holds | Source | Issue |
+|---|---|---|---|
+| email_engagement | one row per email event (sent/open/click/...) | sending platform (TBC) | M10-1 |
+| support_tickets | ticket lifecycle + response/resolution times | helpdesk (TBC) | M10-2 |
+| churn_reasons | cancellations: categorized reason + MRR lost | billing/survey (TBC) | M10-3 |
+| content_calendar | planned/published content across channels | calendar tool (TBC) | M10-4 |
+| webinar_metrics | per-webinar attendance + conversion | webinar tool (TBC) | M10-5 |
+| nps_feedback | survey responses + NPS bucket | survey tool (TBC) | M10-6 |
+| audit_feed | consolidated dispatch + audit_log compliance timeline | internal (no credential) | M10-7 |
+
+The exact source tool per row marked "TBC" is confirmed with the operator; only
+each connector's `fetch()` is tool-specific, the normalized columns are fixed.
 
 ## C-Suite-owned tables (this repo migrates)
 
