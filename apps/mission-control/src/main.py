@@ -95,6 +95,21 @@ def create_app(
             "audits": store.recent_audits(),
         }
 
+    @app.get("/api/health-summary")
+    def health_summary(request: Request):
+        _require(request)
+        latest: dict[str, str] = {}
+        for d in store.recent_dispatches(limit=200):
+            agent = d.get("agent")
+            if agent and agent not in latest:
+                latest[agent] = d.get("status", "unknown")
+        return {
+            "agents": [
+                {"agent": a, "role": role, "last_status": latest.get(a)}
+                for a, role in settings.roster
+            ]
+        }
+
     @app.post("/api/dispatch")
     def dispatch(body: dict, request: Request):
         _require(request)
