@@ -1,0 +1,35 @@
+# Secrets and credentials (never commit)
+.env
+.env.*
+!.env.csuite.example
+auth.json
+*.pem
+*.key
+secrets/
+backups/
+
+# Node / Next
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build / runtime
+build/
+dist/
+*.log
