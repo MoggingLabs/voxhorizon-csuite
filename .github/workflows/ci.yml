@@ -49,6 +49,7 @@ jobs:
           python-version: "3.12"
       - name: Validate compose YAML
         run: |
+          python -m pip install --quiet pyyaml
           python - <<'PY'
           import glob, yaml, sys
           ok = True
