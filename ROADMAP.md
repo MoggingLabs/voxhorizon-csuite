@@ -14,14 +14,14 @@ Goal: stand up the private repo, conventions, CI skeleton, ADRs, and supply-chai
 scanning; rotate the leaked production secret first.
 
 Done when: docs set, `.github/`, and ADRs in; CI green on a lint pass; gitleaks,
-dependabot, CodeQL, and dependency-review active (CodeQL and dependency-review run
-free now that the repo is public); `WORKER_SHARED_SECRET` rotated on production and
-absent here; the static isolation guard passes.
+dependabot, and CodeQL active (free on the public repo; dependency-review optional
+once the Dependency graph is enabled); `WORKER_SHARED_SECRET` rotated on production
+and absent here; the static isolation guard passes.
 
 Issues: M0-1 repo + conventions; M0-2 docs skeleton; M0-3 the eight ADRs; M0-4
 issue + PR templates (incl. security); M0-5 `ci.yml`; M0-6 supply-chain (gitleaks
-+ dependabot + CodeQL + dependency-review); M0-7 rotate prod
-`WORKER_SHARED_SECRET` (first); M0-8 branch protection.
++ dependabot + CodeQL); M0-7 rotate prod `WORKER_SHARED_SECRET` (first); M0-8
+branch protection.
 
 ## M1 Isolation harness
 
