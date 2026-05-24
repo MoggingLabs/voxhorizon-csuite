@@ -70,6 +70,19 @@ jobs:
       - name: actionlint
         uses: raven-actions/actionlint@v2
 
+  security-tests:
+    name: Security tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run security tests
+        run: |
+          python -m pip install --quiet pytest pyyaml
+          pytest tests/security -q
+
   mcp:
     name: Data Brain MCP (pytest)
     runs-on: ubuntu-latest
