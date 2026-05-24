@@ -46,7 +46,8 @@ churn reasons, content calendar, webinar metrics, NPS, an audit-log feed.
 
 - `csuite_readonly`: SELECT on the read surface only. INSERT/UPDATE/DELETE/DDL all
   denied (proven by `sec_readonly_role_write_denied`). The MCP connects as this
-  role.
+  role. Created by `db/migrations/0001_csuite_readonly.sql`; its password is set
+  out of band at bootstrap (a runtime secret, never committed).
 - RLS deny-all on the C-Suite-owned tables; only the service role (behind the
   Mission Control gate and the dispatcher) writes (`sec_rls_deny_all`).
 - Migrations are forward-only and sequential (`NNNN_*.sql`); do not rewrite

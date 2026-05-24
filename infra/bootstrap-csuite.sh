@@ -30,6 +30,7 @@ SUPA_PROJECT="csuite-supabase"
 OUR_PROJECT="csuite"
 KONG_PORT="8100"
 STUDIO_PORT="8101"
+DATA_BRAIN_SRC="${DATA_BRAIN_SRC:-}"        # path or git URL to business-data-brain-template
 
 if [[ "${ROOT}" == "/opt/voxhorizon" ]]; then
   echo "refusing: ROOT must be the isolated /opt/voxhorizon-csuite" >&2; exit 1
@@ -82,8 +83,16 @@ migrate_only() {
     exit 1
   fi
   local m
-  for m in "${REPO_DIR}"/business-data-brain-template/supabase/migrations/*.sql; do
-    echo "  -> $(basename "$m")"
+  # Data Brain warehouse schema (assembled into BUILD_DB in step 6).
+  for m in "${BUILD_DB}"/supabase/migrations/*.sql; do
+    [ -e "$m" ] || continue
+    echo "  -> data-brain $(basename "$m")"
+    docker exec -i "${db_container}" psql -U postgres -d postgres < "$m"
+  done
+  # C-Suite-owned migrations (read-only role, RLS, dispatch/audit).
+  for m in "${SCRIPT_DIR}/../db/migrations"/*.sql; do
+    [ -e "$m" ] || continue
+    echo "  -> csuite $(basename "$m")"
     docker exec -i "${db_container}" psql -U postgres -d postgres < "$m"
   done
   echo "ok: migrations applied"
@@ -127,11 +136,10 @@ chown -R 10000:10000 "${AGENTS_ROOT}"
 chmod 700 "${SECRETS_DIR}"
 echo "ok: ${ROOT}, ${SECRETS_DIR}, agent data dirs under ${AGENTS_ROOT}"
 
-say "3. expect this repo at ${REPO_DIR}"
-if [[ ! -d "${REPO_DIR}/business-data-brain-template" ]]; then
-  echo "note: ${REPO_DIR} does not contain License-and-Scale yet." >&2
-  echo "      place this folder there (git clone or copy) and re-run." >&2
-  [[ "${DRY_RUN}" -eq 0 ]] && exit 1
+say "3. validate inputs"
+if [[ -z "${DATA_BRAIN_SRC}" ]]; then
+  echo "error: set DATA_BRAIN_SRC to the business-data-brain-template path or git URL" >&2
+  exit 1
 fi
 
 say "4. clone official self-hosted Supabase (docker)"
@@ -143,6 +151,17 @@ else
   echo "ok: ${SUPA_DIR} present"
 fi
 chown -R "${CSUITE_USER}:${CSUITE_USER}" "${SUPA_SRC}"
+
+# M2-1: bind the self-hosted Supabase published ports to loopback only. Upstream
+# publishes Kong/Studio/Postgres on 0.0.0.0; rewrite to 127.0.0.1 so nothing is
+# exposed beyond the host (public access via Tailscale Serve; UFW is the backstop).
+# Non-fatal: if the compose format differs, UFW still blocks inbound.
+if [[ -f "${SUPA_DIR}/docker-compose.yml" ]]; then
+  for pv in KONG_HTTP_PORT KONG_HTTPS_PORT STUDIO_PORT POSTGRES_PORT; do
+    sed -i -E "s|^([[:space:]]*-[[:space:]]*)(\\\$\\{${pv}[^}]*\\}:)|\\1127.0.0.1:\\2|" "${SUPA_DIR}/docker-compose.yml" 2>/dev/null || true
+  done
+  echo "ok: bound Supabase published ports to 127.0.0.1 where present"
+fi
 
 say "5. generate secrets + render env files"
 if [[ -f "${ENV_FILE}" ]]; then
@@ -193,8 +212,18 @@ else
   fi
 fi
 
-say "6. assemble Data Brain build context"
-cp -r "${REPO_DIR}/business-data-brain-template/." "${BUILD_DB}/"
+say "6. assemble Data Brain build context (from DATA_BRAIN_SRC)"
+if [[ "${DATA_BRAIN_SRC}" =~ ^(https?://|git@) ]]; then
+  rm -rf "${BUILD_DB}.src"
+  git clone --depth 1 "${DATA_BRAIN_SRC}" "${BUILD_DB}.src"
+  cp -r "${BUILD_DB}.src/." "${BUILD_DB}/"
+  rm -rf "${BUILD_DB}.src"
+elif [[ -d "${DATA_BRAIN_SRC}" ]]; then
+  cp -r "${DATA_BRAIN_SRC}/." "${BUILD_DB}/"
+else
+  echo "error: DATA_BRAIN_SRC not found: ${DATA_BRAIN_SRC}" >&2
+  exit 1
+fi
 rm -rf "${BUILD_DB}/.git"
 cp "${SCRIPT_DIR}/data-brain.Dockerfile" "${BUILD_DB}/Dockerfile"
 cp "${SCRIPT_DIR}/data-brain.dockerignore" "${BUILD_DB}/.dockerignore"
@@ -217,27 +246,17 @@ bash "$0" migrate || echo "warn: migrations step reported an issue - run '$0 mig
 say "10. build + up the Data Brain (project ${OUR_PROJECT}, creates csuite_net)"
 sudo -u "${CSUITE_USER}" -H sh -c "cd '${ROOT}' && docker compose -p '${OUR_PROJECT}' --env-file '${ENV_FILE}' -f docker-compose.csuite.yml up -d --build"
 
-say "11. create the read-only DB role for the Data-Brain MCP"
+say "11. set the read-only DB role password (role + grants come from db/migrations/0001)"
 RO_DSN="$(grep -E '^CSUITE_DB_DSN=' "${ENV_FILE}" | cut -d= -f2- || true)"
 RO_PW_VAL="$(printf '%s' "${RO_DSN}" | sed -E 's|.*//csuite_readonly:([^@]*)@.*|\1|')"
 DB_C="$(docker ps --filter "name=${SUPA_PROJECT}" --filter "name=db" --format '{{.Names}}' | head -1)"
 if [[ -n "${DB_C}" && -n "${RO_PW_VAL}" && "${RO_PW_VAL}" != "CHANGE_ME" ]]; then
-  docker exec -i "${DB_C}" psql -U postgres -d postgres <<SQL || echo "warn: readonly role step had issues"
-do \$\$ begin
-  if not exists (select from pg_roles where rolname = 'csuite_readonly') then
-    create role csuite_readonly login password '${RO_PW_VAL}';
-  else
-    alter role csuite_readonly password '${RO_PW_VAL}';
-  end if;
-end \$\$;
-grant connect on database postgres to csuite_readonly;
-grant usage on schema public to csuite_readonly;
-grant select on all tables in schema public to csuite_readonly;
-alter default privileges in schema public grant select on tables to csuite_readonly;
-SQL
-  echo "ok: csuite_readonly role ready"
+  docker exec -i "${DB_C}" psql -U postgres -d postgres \
+    -c "alter role csuite_readonly login password '${RO_PW_VAL}'" \
+    || echo "warn: could not set csuite_readonly password (is the role migration applied?)"
+  echo "ok: csuite_readonly password set"
 else
-  echo "warn: skipped readonly role (db container not found or DSN password unset)"
+  echo "warn: skipped role password (db container not found or DSN password unset)"
 fi
 
 say "12. bring up the C-Suite Hermes agents (project ${OUR_PROJECT})"
