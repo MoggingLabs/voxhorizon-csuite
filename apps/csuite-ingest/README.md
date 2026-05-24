@@ -9,7 +9,7 @@ rest.
 
 | Connector | Table | Source | Credential |
 |---|---|---|---|
-| `email_engagement` | `email_engagement` | sending platform | `EMAIL_ENGAGEMENT_*` |
+| `email_engagement` | `email_engagement` | GoHighLevel (`/emails/schedule`, wired) | `EMAIL_ENGAGEMENT_API_KEY` + `_LOCATION_ID` |
 | `support_tickets` | `support_tickets` | helpdesk | `SUPPORT_TICKETS_*` |
 | `churn_reasons` | `churn_reasons` | billing / survey | `CHURN_*` |
 | `content_calendar` | `content_calendar` | calendar tool | `CONTENT_CALENDAR_*` |
