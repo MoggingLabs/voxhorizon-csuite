@@ -14,13 +14,14 @@ Goal: stand up the private repo, conventions, CI skeleton, ADRs, and supply-chai
 scanning; rotate the leaked production secret first.
 
 Done when: repo private; docs set, `.github/`, and ADRs in; CI green on a lint
-pass; gitleaks, dependabot, and CodeQL active; `WORKER_SHARED_SECRET` rotated on
-production and absent here; the static isolation guard passes.
+pass; gitleaks and dependabot active (CodeQL and dependency-review deferred, they
+need GitHub Advanced Security); `WORKER_SHARED_SECRET` rotated on production and
+absent here; the static isolation guard passes.
 
 Issues: M0-1 repo + conventions; M0-2 docs skeleton; M0-3 the eight ADRs; M0-4
-issue + PR templates (incl. security); M0-5 `ci.yml`; M0-6 CodeQL + gitleaks +
-dependency-review + dependabot; M0-7 rotate prod `WORKER_SHARED_SECRET` (first);
-M0-8 branch protection.
+issue + PR templates (incl. security); M0-5 `ci.yml`; M0-6 supply-chain (gitleaks
++ dependabot now; CodeQL + dependency-review when GHAS is enabled); M0-7 rotate
+prod `WORKER_SHARED_SECRET` (first); M0-8 branch protection.
 
 ## M1 Isolation harness
 
@@ -117,10 +118,10 @@ checks; M8-4 crash-loop / stuck alerts.
 Goal: close every control in the threat model with a proving test.
 
 Done when: the SECURITY.md control-to-test matrix is 100 percent green; secret
-scan and CodeQL clean; a restore drill succeeds.
+scan clean (CodeQL only when GHAS is enabled); a restore drill succeeds.
 
 Issues: M9-1 control matrix green; M9-2 prompt-injection guardrails; M9-3
-secret-scan + CodeQL clean; M9-4 backup/restore drill.
+secret-scan clean (CodeQL when GHAS enabled); M9-4 backup/restore drill.
 
 ## M10 V2 integrations and visibility gaps
 

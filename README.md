@@ -69,8 +69,12 @@ tests/          e2e (owner drives an agent), security (control proofs), golden e
 
 ## Status
 
-M0 (Foundation) in progress. The full plan and progress live in
-[ROADMAP.md](ROADMAP.md) and the repo's milestones and issues.
+M0 (Foundation) is complete and merged: the docs set, ADRs, CI, supply-chain
+scanning, the moved scaffold, branch protection, and the full backlog (11
+milestones, 46 issues). The one open M0 item is the production secret rotation
+(#7), held for an explicit go-ahead. M1 (Isolation harness) is next. The full
+plan and progress live in [ROADMAP.md](ROADMAP.md) and the repo's milestones and
+issues.
 
 ## Conventions
 
